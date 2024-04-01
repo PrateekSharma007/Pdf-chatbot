@@ -120,8 +120,8 @@ def main():
 
 
 if __name__ == "__main__":
-    # main()
-    app.run(debug=True, port=3000)
+    main()
+    # app.run(debug=True, port=3000)
     # socketio.run(app)
 
     # pip install streamlit==1.24.0 use this version only
