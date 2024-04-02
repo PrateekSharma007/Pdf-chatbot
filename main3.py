@@ -12,12 +12,19 @@ from dotenv import load_dotenv
 from langchain_community.llms import CTransformers
 from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
+from langchain_community.llms import LlamaCpp
+from langchain_core.callbacks import CallbackManager, StreamingStdOutCallbackHandler
+from langchain_community.embeddings import CohereEmbeddings
+
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 app = Flask(__name__)
 CORS(app)
 load_dotenv()
 os.getenv("GOOGLE_API_KEY")
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+api_key = "TqIvtGkX9cfPY954K9GUNPedCCuNheHUYL2me65S"
+embeddings = CohereEmbeddings(cohere_api_key=api_key)
+
 
 @app.route('/hello')
 def hello():
@@ -27,7 +34,22 @@ def hello():
 # def upload():
 
 
-
+model_PATH = "models\llama-2-7b-chat.Q4_K_M.gguf"
+n_gpu_layers = -1
+n_batch = 512
+callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
+model = LlamaCpp(
+        model_path=model_PATH,
+        n_gpu_layers=n_gpu_layers,
+        n_batch=n_batch,
+        temperature=0.5,
+        # max_tokens=2000,
+        n_ctx = 2000,
+        f16_kv = True,
+        top_p=1,
+        callback_manager=callback_manager,
+        verbose=True
+    )
 
 
 
@@ -50,7 +72,7 @@ def get_text_chunks(text):
 
 
 def get_vector_store(text_chunks):
-    embeddings = GoogleGenerativeAIEmbeddings(model = "models/embedding-001")
+    # embeddings = GoogleGenerativeAIEmbeddings(model = "models/embedding-001")
     vector_store = FAISS.from_texts(text_chunks, embedding=embeddings)
     vector_store.save_local("faiss_index")
     
@@ -67,10 +89,10 @@ def get_conversational_chain():
     Answer:
     """
 
-    model=CTransformers(model="models\llama-2-7b-chat.ggmlv3.q4_0.bin",
-                  model_type="llama",
-                  config={'max_new_tokens':512,
-                          'temperature':0.8})  
+    # model=CTransformers(model="models\llama-2-7b-chat.ggmlv3.q4_0.bin",
+    #               model_type="llama",
+    #               config={'max_new_tokens':512,
+    #                       'temperature':0.8})  
 
     prompt = PromptTemplate(template = prompt_template, input_variables = ["context", "question"])
     chain = load_qa_chain(model, chain_type="stuff", prompt=prompt)
@@ -121,7 +143,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    # app.run(debug=True, port=3000)
-    # socketio.run(app)
-
-    # pip install streamlit==1.24.0 use this version only
